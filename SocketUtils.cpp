@@ -48,8 +48,12 @@ bool readLine(int socket, std::string &ret){ //separator - CRLF
 bool readBytes(int socket, char *buf, int len){
     int bytesRead = 0;
     while (bytesRead < len){
-        bytesRead += read_(socket, buf,len-bytesRead);
+        int r = read_(socket, buf,len-bytesRead);
+        if (r <= 0)
+            return false;
+        bytesRead += r;
     }
+    return true;
 }
 
 bool writeString(int socket, const std::string& str){

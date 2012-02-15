@@ -5,6 +5,7 @@
 #include <queue>
 #include <string>
 #include "Thread.cpp"
+#include "HTTPServer.h"
 
 class Server{
 public:
@@ -18,6 +19,7 @@ public:
 private:
     bool serverRunning;
     int port,serverSocket;
+    HTTPServer httpServer;
 };
 
 #endif //SERVER_H 

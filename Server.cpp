@@ -7,22 +7,10 @@
 #include <cctype>
 #include <map>
 
-#ifdef WIN32
-    #include <windows.h>
-    #include <winsock2.h>
-    #define socklen_t int
-#else
-    #include <unistd.h>
-    #include <sys/types.h> 
-    #include <sys/socket.h>
-    #include <netinet/in.h>
-    #include <netdb.h>
-    #include <arpa/inet.h>
-#endif 
-
 #include "Server.h"
-#include "HTTPRequest.h"
+#include "HTTPServer.h"
 #include "SocketUtils.h"
+
 const std::string CRLF = "\r\n";
 
 void error(const char *msg){
@@ -50,10 +38,11 @@ Server::Server(int p,bool forceUse):port(p){
 
 void Server::run(){
     serverRunning = true;
+    std::cout<<"Server started!"<<std::endl;
     while (serverRunning){
         sockaddr_in client;
         socklen_t clilen = sizeof(client);
-        std::cout<<"Waiting for connection\n";
+        //std::cout<<"Waiting for connection\n";
         int clientSocket = ::accept(serverSocket, (sockaddr*) &client, &clilen);
         if (clientSocket < 0){
             error("ERROR on accept");
@@ -66,18 +55,7 @@ void Server::run(){
 void Server::process(int socket){
     try{
         HTTPRequest httpReq(HTTPRequest::readFromSocket(socket));
-        
-        std::ifstream in("test.html");
-        std::stringstream content;
-        content<<in.rdbuf();
-        
-        std::stringstream response;
-        response<<"HTTP/1.0 200 OK"+CRLF;
-        response<<"Content-Type: text/html"+CRLF;
-        response<<"Content-Length: "<<content.str().length()<<CRLF;
-        response<<CRLF;
-        response<<content.str();
-        writeString(socket,response.str());
+        writeString(socket,httpServer.serve(httpReq).str());
     }catch(const std::string& s){
         std::cout<<s<<std::endl;
     }
