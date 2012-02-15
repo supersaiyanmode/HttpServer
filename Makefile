@@ -6,13 +6,13 @@ LIBRARIES=-lpthread
 MODULES=obj/HTTPRequest.o obj/main.o obj/Server.o obj/SocketUtils.o
 
 all: $(MODULES)
-        $(CPPCOMPILER) $(MODULES) $(LIBRARIES) -o httpserver
+	$(CPPCOMPILER) $(MODULES) $(LIBRARIES) -o httpserver
 
 obj/main.o : main.cpp
-        @mkdir -p obj
-        $(CPPCOMPILER) -c $(FLAGS) $< -o $@ 
+	@mkdir -p obj
+	$(CPPCOMPILER) -c $(FLAGS) $< -o $@ 
 obj/%.o : %.cpp %.h
-        @mkdir -p obj
-        $(CPPCOMPILER) -c $(FLAGS) $< -o $@ 
+	@mkdir -p obj
+	$(CPPCOMPILER) -c $(FLAGS) $< -o $@ 
 clean:
-        rm -rf $(MODULES) httpserver
+	rm -rf $(MODULES) httpserver
