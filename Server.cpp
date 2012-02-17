@@ -56,6 +56,7 @@ void Server::process(int socket){
     try{
         HTTPRequest httpReq(HTTPRequest::readFromSocket(socket));
         writeString(socket,httpServer.serve(httpReq).str());
+        closeSocket(socket);
     }catch(const std::string& s){
         std::cout<<s<<std::endl;
     }

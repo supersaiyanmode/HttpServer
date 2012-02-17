@@ -67,3 +67,7 @@ bool writeBytes(int socket, char *buf, int len){
         return false;
     return write_(socket, buf, len);
 }
+
+void closeSocket(int socket){
+    close_(socket);
+}

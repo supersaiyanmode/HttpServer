@@ -14,23 +14,25 @@ protected:
     std::string version; 
     std::string body;
     std::map<std::string, std::string> headers;
-    virtual std::string getFirstLine()=0;
 public:
+    CookieSet cookies;
     const std::map<std::string, std::string>& getHeaders();
     std::string getContent();
-    std::string str();
+    virtual std::string str(std::string="")=0; //pretty print purposes
 };
 
 class HTTPRequest: public HTTPMessage{
     HTTPRequestMethod method;
     std::string url;
-    std::string getFirstLine();
     std::map<std::string, std::string> getParam, postParam;
-    CookieSet cookieSet;
 public:
     HTTPRequestMethod getMethod();
     std::string getMethodStr();
     std::string getUrl();
+    std::string str(std::string=""); //pretty print purposes
+    const std::map<std::string, std::string> getParams();
+    const std::map<std::string, std::string> postParams();
+    
     
     static HTTPRequest readFromSocket(int);
 };
@@ -39,8 +41,10 @@ class HTTPResponse: public HTTPMessage{
     int code;
     std::string codeStr;
     std::string statusMsg;
-    std::string getFirstLine();
 public:
+    HTTPResponse();
+    std::string str(std::string=""); //pretty print purposes
+    void redirect(const std::string &);
     void setStatusCode(int);
     void setHeader(const std::string&, const std::string&);
     void setContent(const std::string&);

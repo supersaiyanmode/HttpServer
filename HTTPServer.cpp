@@ -10,7 +10,7 @@
 #include <ctime>
 
 const std::string CRLF = "\r\n";
-
+std::ostream& operator<<(std::ostream& o, const std::map<std::string, std::string>& map);
 //###########SESSION MANAGER######################
 typedef std::map<std::string, std::string> Session;
 
@@ -40,10 +40,10 @@ std::string startNewSession(){
 HTTPServer::HTTPServer(){}
 
 HTTPResponse HTTPServer::serve(HTTPRequest httpReq){
-    std::cout<<"---------------------\n"<<httpReq.str()<<std::endl;
+    std::cout<<"---------------------\n";
+    std::cout<<httpReq.str("< ")<<std::endl;
     
     HTTPResponse httpRes;
-    
     
     if (httpReq.getUrl() == "/" && httpReq.getMethod() == GET){
         std::string content;
@@ -56,28 +56,20 @@ HTTPResponse HTTPServer::serve(HTTPRequest httpReq){
         httpRes.setStatusCode(200);
         httpRes.setHeader("Content-Type","text/html");
         httpRes.setContent(content);
-    }else if (httpReq.getUrl() == "/login" && httpReq.getMethod() == POST){
-        std::cout<<"Post body: \n";
-        std::cout<<httpReq.getContent()<<std::endl;
-        
+    }else if (httpReq.getUrl() == "/login"){// && httpReq.getMethod() == POST){
         std::string id = startNewSession();
         std::cout<<"Started new session: "<<id<<std::endl;
         httpRes.setStatusCode(200);
         httpRes.setHeader("Content-Type","text/html");
-        httpRes.setHeader("Set-Cookie","SESSIONID=\"" + id + "\"; Path=/;");
+        httpRes.cookies["SESSIONID"]=id;
         httpRes.setContent("<meta http-equiv='Refresh' content='0; url=/files' />");
     }else if (httpReq.getUrl() == "/files" && httpReq.getMethod() == GET){
         //check the session..
-        std::map<std::string,std::string> headers = httpReq.getHeaders();
-        if (headers.find("cookie") == headers.end()){ //redirect
-            httpRes.setHeader("Location","/");
-            httpRes.setContent("");
+        std::string sessionId = httpReq.cookies["SESSIONID"].value();
+        if (sessionMap.find(sessionId) == sessionMap.end()){ //redirect
+            httpRes.redirect("/");
             return httpRes;
         }
-        std::string sessId = headers["cookie"];
-        size_t pos = sessId.find_first_of('=');
-        sessId = sessId.substr(0,pos);
-        
         
         std::string content;
         std::stringstream ss;
@@ -91,11 +83,10 @@ HTTPResponse HTTPServer::serve(HTTPRequest httpReq){
         httpRes.setContent(content);
     }else if (httpReq.getUrl() == "/command" && httpReq.getMethod() == POST){
         std::string command = httpReq.getContent();
-        
         httpRes.setHeader("Content-Type","application/json");
         if (command == "ls"){
             httpRes.setStatusCode(200);
-            //httpRes.setContent(FileManager::);
+            httpRes.setContent(FileManager::);
         }
         
     }else if (httpReq.getUrl() == "/jquery" && httpReq.getMethod() == GET){
@@ -109,11 +100,21 @@ HTTPResponse HTTPServer::serve(HTTPRequest httpReq){
         httpRes.setStatusCode(200);
         httpRes.setHeader("Content-Type","text/javascript");
         httpRes.setContent(content);
+    }else if (httpReq.getUrl() == "/test"){
+        std::string cookieStr;
+        std::map<std::string, std::string> map = httpReq.getParams();
+        for (std::map<std::string, std::string>::iterator it=map.begin(); 
+                    it!=map.end(); it++){
+            httpRes.cookies[it->first] = it->second;
+        }
+        cookieStr = cookieStr.substr(0,cookieStr.length()-1);
+        httpRes.setHeader("Set-Cookie",cookieStr);
+        httpRes.setContent("");
     }else {
         httpRes.setStatusCode(404);
         httpRes.setContent("");
     }
-    
-
+    std::cout<<httpRes.str("< ")<<std::endl;
+    std::cout<<"---------------------\n";
     return httpRes;
 }

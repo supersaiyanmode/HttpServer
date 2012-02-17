@@ -5,13 +5,18 @@
 #include <time.h>
 
 class Cookie{
-    std::string key;
-    std::string value;
+    std::string key_;
+    std::string value_;
     std::string path;
     ::time_t expires;
+    bool expirationSet;
 public:
-    Cookie(const std::string&);
-    std::string str();
+    Cookie();
+    Cookie(const std::string&,const std::string&);
+    std::string operator=(const std::string&);
+    std::string str() const;
+    std::string value() const;
+    std::string key() const;
     void expire();
     void setPath(const std::string&);
     void setExpiration(::time_t);
@@ -21,11 +26,10 @@ public:
 class CookieSet{
     std::map<std::string, Cookie> cookies;
 public:
-    CookieSet(const std::string&);
-    const Cookie& operator[](const std::string&) const;
     Cookie& operator[](const std::string&);
     
     std::string str() const;
-}
-
+    
+    static CookieSet fromHeaderString(const std::string&);
+};
 #endif

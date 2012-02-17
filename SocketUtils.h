@@ -27,4 +27,5 @@ bool writeString(int socket, const std::string& line);
 
 bool writeBytes(int socket, char *buf, int len);
 
+void closeSocket(int socket);
 #endif

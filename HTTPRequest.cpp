@@ -2,11 +2,21 @@
 #include <sstream>
 #include <algorithm>
 #include <ctype.h>
+#include <stdio.h>
 
 #include "HTTPRequest.h"
 #include "SocketUtils.h"
 
 const std::string CRLF = "\r\n";
+std::pair<int, std::string> httpStatusCodeData[] = {
+    std::make_pair(200,"OK"),
+    std::make_pair(302,"Found"),
+    std::make_pair(404,"Not Found"),
+    std::make_pair(500,"Internal Server Error")
+};
+
+std::map<int, std::string> httpStatusCodes(httpStatusCodeData,
+    httpStatusCodeData + sizeof(httpStatusCodeData)/sizeof(httpStatusCodeData[0]));
 
 std::string trim(std::string str, std::string trimChars=" \t"){
     size_t endpos = str.find_last_not_of(" \t");
@@ -33,6 +43,87 @@ std::map<std::string, std::string> makeHeaders(const std::vector<std::string>& h
     return headers;
 }
 
+std::string encodeURIComponent(const std::string &s){
+    //RFC 3986 section 2.3 Unreserved Characters (January 2005)
+    const std::string unreserved = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.~";
+
+    std::string escaped="";
+    for(size_t i=0; i<s.length(); i++){
+        if (unreserved.find_first_of(s[i]) != std::string::npos){
+            escaped.push_back(s[i]);
+        }else{
+            escaped.append("%");
+            char buf[3];
+            sprintf(buf, "%.2X", s[i]);
+            escaped.append(buf);
+        }
+    }
+    return escaped;
+}
+
+std::string decodeURIComponent(const std::string& s){
+    static const std::string hexChars = "0123456789ABCDEF";
+    std::string ret="";
+    for(size_t i=0, len=s.length(); i<len; i++){
+        if (s[i] == '%'){
+            if (i >= len-2){
+                return ret;
+            }
+            size_t pos1 = hexChars.find_first_of(::toupper(s[i+1]));
+            size_t pos2 = hexChars.find_first_of(::toupper(s[i+2]));
+            if (pos1 == std::string::npos || pos2 == std::string::npos)
+                continue; //invalid char here, ignore and continue..
+            ret.append(1,(char)(pos1*16 + pos2));
+            i+=2;
+        }else{
+            ret.append(1,s[i]);
+        }
+    }
+    return ret;
+}
+
+std::map<std::string, std::string> decodeParams(std::string queryString){
+    std::map<std::string, std::string> ret;
+    size_t posAmp;
+    while (1){
+        posAmp = queryString.find_first_of('&');
+        size_t posEqual;
+        std::string kvPairStr;
+        if (posAmp == std::string::npos){
+            kvPairStr = queryString;
+            posEqual = kvPairStr.find_first_of('=');
+            if (posEqual == std::string::npos)
+                return ret;
+            ret[kvPairStr.substr(0,posEqual)] = decodeURIComponent(kvPairStr.substr(posEqual+1));
+            return ret;
+        }
+        kvPairStr = queryString.substr(0,posAmp);
+        posEqual = kvPairStr.find_first_of('=');
+        if (posEqual == std::string::npos)
+            continue; //error
+        ret[kvPairStr.substr(0,posEqual)] = decodeURIComponent(kvPairStr.substr(posEqual+1));
+        queryString = queryString.substr(posAmp+1);
+    }
+    return ret;
+}
+
+
+std::string encodeParams(const std::map<std::string, std::string>& param){
+    std::string ret = "";
+    for (std::map<std::string, std::string>::const_iterator it=param.begin(); it!=param.end(); it++){
+        ret += it->first + "=" + encodeURIComponent(it->second);
+    }
+    return ret;
+}
+
+std::ostream& operator<<(std::ostream& o, const std::map<std::string, std::string>& map){
+    for (std::map<std::string, std::string>::const_iterator it=map.begin(); it!= map.end(); it++){
+        o<<it->first<<" : "<<it->second<<std::endl;
+    }
+    return o;
+}
+
+//##############HTTPMessage#######################
 const std::map<std::string, std::string>& HTTPMessage::getHeaders(){
     return headers;
 }
@@ -41,15 +132,6 @@ const std::map<std::string, std::string>& HTTPMessage::getHeaders(){
 
 std::string HTTPMessage::getContent(){
     return body;
-}
-
-std::string HTTPMessage::str(){
-    std::string ret = getFirstLine() + CRLF;
-    for (std::map<std::string,std::string>::iterator it=headers.begin(); it!=headers.end(); it++)
-        ret += it->first + ": " + it->second + CRLF;
-    ret += CRLF;
-    ret += body;
-    return ret;
 }
 
 
@@ -84,7 +166,8 @@ HTTPRequest HTTPRequest::readFromSocket(int socket){
         throw std::string("Bad Request") + methodStr;
 
     //make cookieSet
-    cookieSet = 
+    //cookieSet = 
+
     //separate GET params
     size_t posQmark= urlStr.find_first_of('?');
     if (posQmark == std::string::npos){
@@ -92,18 +175,10 @@ HTTPRequest HTTPRequest::readFromSocket(int socket){
     }else{
         ret.url = urlStr.substr(0,posQmark);
         
-        /*urlStr.substr(0,posQmark);
-        std::string queryString = urlStr.substr(posQmark+1),param;
-        size_t posAmp;
-        while ((posAmp = queryString.find_first_of('&')) != std::string::npos){
-            param = queryString.substr(0,posAmp);
-            
-            //quick and dirty
-            size_t pos = param.find_first_of('=');
-            getParam[param.substr(0,pos)] = param.substr(pos+1);
-            
-            queryString = 
-        }*/
+        if (posQmark < urlStr.length()-1){ //ignore the URL with '?' at the end..
+            std::string queryString = urlStr.substr(posQmark+1),param;
+            ret.getParam = decodeParams(queryString);
+        }
     }
     ret.version = versionStr;
     
@@ -125,9 +200,6 @@ HTTPRequest HTTPRequest::readFromSocket(int socket){
     return ret;
 }
 
-std::string HTTPRequest::getFirstLine(){
-    return getMethodStr() + " " + getUrl() + " " + version;
-}
 std::string HTTPRequest::getUrl(){
     return url;
 }
@@ -138,20 +210,34 @@ std::string HTTPRequest::getMethodStr(){ //TODO: Fix this quick and dirty stuff.
     return (method==GET?"GET":method==POST?"POST":method==DELETE?"DELETE":"PUT");
 }
 
-
-//####################HTTPResponse###################
-std::string HTTPResponse::getFirstLine(){
-    return version + " " + codeStr + " " + statusMsg;
+const std::map<std::string, std::string> HTTPRequest::getParams(){
+    return getParam;
+}
+const std::map<std::string, std::string> HTTPRequest::postParams(){
+    return postParam;
 }
 
-void HTTPResponse::setStatusCode(int c){
-    //temporarily set version = HTTP/1.0
+
+std::string HTTPRequest::str(std::string prepend){
+    std::string ret = prepend + getMethodStr() + " " + getUrl() + " " + version + CRLF;
+    for (std::map<std::string,std::string>::iterator it=headers.begin(); it!=headers.end(); it++)
+        ret += prepend + it->first + ": " + it->second + CRLF;
+    ret += CRLF;
+    ret += prepend + prepend + body;
+    return ret;
+}
+
+//####################HTTPResponse###################
+HTTPResponse::HTTPResponse(){
     version = "HTTP/1.0";
-    statusMsg = c==200?"OK":c==404?"Not Found":"None";
+    setStatusCode(200);
+}
+void HTTPResponse::setStatusCode(int c){
+    statusMsg = httpStatusCodes[c];
     code = c;
     std::stringstream ss;
     ss<<c;
-    ss>>codeStr;
+    codeStr = ss.str();
 }
 
 void HTTPResponse::setHeader(const std::string& k, const std::string& v){
@@ -165,4 +251,20 @@ void HTTPResponse::setContent(const std::string& s){
     
     //set the header..
     headers["Content-Length"] = ss.str();
+}
+
+std::string HTTPResponse::str(std::string prepend){
+    std::string ret = prepend + version + " " + codeStr + " " + statusMsg + CRLF;
+    headers["Set-Cookie"] = cookies.str();
+    for (std::map<std::string,std::string>::iterator it=headers.begin(); it!=headers.end(); it++)
+        ret += prepend + it->first + ": " + it->second + CRLF;
+    ret += CRLF;
+    ret += prepend + prepend+body;
+    return ret;
+}
+
+void HTTPResponse::redirect(const std::string &url){
+    setContent("");
+    setStatusCode(302);
+    setHeader("Location",url);
 }
