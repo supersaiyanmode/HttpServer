@@ -13,8 +13,6 @@ int write_(int sock, const char* arr, int len){
 int close_(int sock){
     return closesocket(sock);
 }
-WSADATA wsaData;
-int dummy = WSAStartup(MAKEWORD(2,2), &wsaData);
 #define socklen_t int
 #else
 int read_(int sock, char* arr, int len){
