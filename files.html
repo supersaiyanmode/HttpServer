@@ -1,0 +1,70 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<script type="text/javascript" src="/jquery"></script>
+<script type="text/javascript">
+function populateFiles(data){
+    var str = "";
+    data = data.split(/[\r\n]/);
+    for (x in data){
+        if (/\/$/.test(data[x]))
+            str += "<li><a href='#' onclick='openDir(\""+data[x]+"\")'>" + data[x] + "</a></li>";
+        else if (data[x])
+            str += "<li><a href='#' onclick='download(\""+data[x]+"\")'>" + data[x] + "</a></li>";
+            
+    }
+    $("#divFileList").html(str);
+}
+function ls(){
+    $.ajax({
+        type: "POST",
+        url:"/command",
+        data:"ls",
+        contentType:"text/plain",
+        success:function(data, textStatus, jqXHR){
+            populateFiles(data);
+        },
+        error:function(jqXHR, textStatus, errorThrown){
+            alert("error!");
+        }
+    });
+}
+function openDir(dirName){
+    $.ajax({
+        type: "POST",
+        url:"/command",
+        data:"cd " + dirName,
+        success:function(data, textStatus, jqXHR){
+            populateFiles(data);
+        },
+        error:function(jqXHR, textStatus, errorThrown){
+            alert("error!");
+        }
+    });
+}
+function goUp(){
+    $.ajax({
+        type: "POST",
+        url:"/command",
+        data:"cd..",
+        success:function(data, textStatus, jqXHR){
+            populateFiles(data);
+        },
+        error:function(jqXHR, textStatus, errorThrown){
+            alert("error!");
+        }
+    });
+}
+function init(){
+    ls();
+}
+$(init);
+</script>
+</head>
+<body>
+<h1>File Listing: </h1>
+<a href="#" onclick="goUp();">Go back</a>
+<ul id="divFileList">
+</ul>
+</body>
+</html>
