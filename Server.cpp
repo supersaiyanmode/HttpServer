@@ -53,13 +53,17 @@ void Server::run(){
 }
 
 void Server::process(int socket){
+    std::cout<<"-----------------NEW REQUEST---------------------\n";
     try{
         HTTPRequest httpReq(HTTPRequest::readFromSocket(socket));
+        std::ostream& operator<<(std::ostream& o, const std::map<std::string, std::string>& map);
+        std::cout<<"Cookies test: "<<httpReq.cookies.getAll()<<std::endl;
         writeString(socket,httpServer.serve(httpReq).str());
         closeSocket(socket);
     }catch(const std::string& s){
         std::cout<<s<<std::endl;
     }
+    std::cout<<"-----------------END REQUEST---------------------\n";
 }
 
 

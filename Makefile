@@ -4,7 +4,7 @@ CPPCOMPILER=g++
 FLAGS=-Wall -g -O3
 LIBRARIES=-lpthread
 MODULES=obj/HTTPRequest.o obj/main.o obj/Server.o obj/SocketUtils.o obj/HTTPServer.o \
-	obj/CookieManager.o
+	obj/CookieManager.o obj/FileLister.o
 
 all: $(MODULES)
 	$(CPPCOMPILER) $(MODULES) $(LIBRARIES) -o httpserver

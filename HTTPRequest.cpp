@@ -165,9 +165,6 @@ HTTPRequest HTTPRequest::readFromSocket(int socket){
     else
         throw std::string("Bad Request") + methodStr;
 
-    //make cookieSet
-    //cookieSet = 
-
     //separate GET params
     size_t posQmark= urlStr.find_first_of('?');
     if (posQmark == std::string::npos){
@@ -189,6 +186,12 @@ HTTPRequest HTTPRequest::readFromSocket(int socket){
     }
     
     ret.headers = makeHeaders(headersVector);
+    
+    //make cookieSet
+    if (ret.headers.find("cookie") != ret.headers.end()){
+        ret.cookies = CookieSet::fromHeaderString(ret.headers["cookie"]);
+    }
+
     if (ret.method == POST){
         std::stringstream ss(ret.headers["content-length"]);
         int length;
@@ -255,7 +258,12 @@ void HTTPResponse::setContent(const std::string& s){
 
 std::string HTTPResponse::str(std::string prepend){
     std::string ret = prepend + version + " " + codeStr + " " + statusMsg + CRLF;
-    headers["Set-Cookie"] = cookies.str();
+    
+    //set header for cookies
+    std::string cookieStr = cookies.str();
+    if (cookieStr != "")
+        headers["Set-Cookie"] = cookieStr;
+    
     for (std::map<std::string,std::string>::iterator it=headers.begin(); it!=headers.end(); it++)
         ret += prepend + it->first + ": " + it->second + CRLF;
     ret += CRLF;

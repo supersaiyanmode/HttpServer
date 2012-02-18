@@ -29,7 +29,7 @@ public:
     Cookie& operator[](const std::string&);
     
     std::string str() const;
-    
-    static CookieSet fromHeaderString(const std::string&);
+    std::map<std::string, std::string> getAll();
+    static CookieSet fromHeaderString(std::string);
 };
 #endif

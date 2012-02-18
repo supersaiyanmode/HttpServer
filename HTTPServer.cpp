@@ -1,4 +1,3 @@
-#include "HTTPServer.h"
 #include <sstream>
 #include <fstream>
 #include <iostream>
@@ -8,6 +7,9 @@
 #include <algorithm>
 #include <cstdlib>
 #include <ctime>
+
+#include "HTTPServer.h"
+#include "FileLister.h"
 
 const std::string CRLF = "\r\n";
 std::ostream& operator<<(std::ostream& o, const std::map<std::string, std::string>& map);
@@ -40,7 +42,6 @@ std::string startNewSession(){
 HTTPServer::HTTPServer(){}
 
 HTTPResponse HTTPServer::serve(HTTPRequest httpReq){
-    std::cout<<"---------------------\n";
     std::cout<<httpReq.str("< ")<<std::endl;
     
     HTTPResponse httpRes;
@@ -67,9 +68,11 @@ HTTPResponse HTTPServer::serve(HTTPRequest httpReq){
         //check the session..
         std::string sessionId = httpReq.cookies["SESSIONID"].value();
         if (sessionMap.find(sessionId) == sessionMap.end()){ //redirect
+            std::cout<<"**REDIRECT!**"<<std::endl;
             httpRes.redirect("/");
             return httpRes;
         }
+        std::cout<<"Session identified!"<<std::endl;
         
         std::string content;
         std::stringstream ss;
@@ -82,11 +85,66 @@ HTTPResponse HTTPServer::serve(HTTPRequest httpReq){
         httpRes.setHeader("Content-Type","text/html");
         httpRes.setContent(content);
     }else if (httpReq.getUrl() == "/command" && httpReq.getMethod() == POST){
-        std::string command = httpReq.getContent();
-        httpRes.setHeader("Content-Type","application/json");
+        //check the session..
+        std::string sessionId = httpReq.cookies["SESSIONID"].value();
+        if (sessionMap.find(sessionId) == sessionMap.end()){ //error
+            httpRes.setStatusCode(404); //we are sending a 404!
+            httpRes.setContent("Invalid session");
+            return httpRes;
+        }
+        Session& session = sessionMap[sessionId];
+        
+        std::stringstream ss(httpReq.getContent());
+        std::string command;
+        ss>>command;
+        if (session["CURRENT_PATH"] == "")
+            session["CURRENT_PATH"] = "";
+        FileLister fl(".");
+        fl.setPath(session["CURRENT_PATH"]);  // or preset basePath..
+        httpRes.setHeader("Content-Type","text");
         if (command == "ls"){
+            std::string res;
+            std::vector<std::string> list(fl.get());
+            for (std::vector<std::string>::iterator it=list.begin(); it!= list.end();
+                 it++){
+                res += *it + "\n";
+            }
             httpRes.setStatusCode(200);
-            httpRes.setContent(FileManager::);
+            httpRes.setContent(res);
+        }else if (command == "cd"){
+            ss>>command;
+            if (fl.enterDir(command)){
+                std::string res;
+                std::vector<std::string> list(fl.get());
+                for (std::vector<std::string>::iterator it=list.begin(); it!= list.end();
+                        it++){
+                    res += *it + "\n";
+                }
+                session["CURRENT_PATH"] = fl.getPath();
+                httpRes.setStatusCode(200);
+                httpRes.setContent(res);
+            }else{
+                httpRes.setStatusCode(404);
+                httpRes.setContent("Invalid Path!");
+            }
+        }else if (command == "cd.."){
+            if (fl.exitDir()){
+                std::string res;
+                std::vector<std::string> list(fl.get());
+                for (std::vector<std::string>::iterator it=list.begin(); it!= list.end();
+                        it++){
+                    res += *it + "\n";
+                }
+                session["CURRENT_PATH"] = fl.getPath();
+                httpRes.setStatusCode(200);
+                httpRes.setContent(res);
+            }else{
+                httpRes.setStatusCode(404);
+                httpRes.setContent("Invalid Path!");
+            }
+        }else {
+            httpRes.setStatusCode(404);
+            httpRes.setContent("Invalid command!");
         }
         
     }else if (httpReq.getUrl() == "/jquery" && httpReq.getMethod() == GET){
@@ -114,7 +172,6 @@ HTTPResponse HTTPServer::serve(HTTPRequest httpReq){
         httpRes.setStatusCode(404);
         httpRes.setContent("");
     }
-    std::cout<<httpRes.str("< ")<<std::endl;
-    std::cout<<"---------------------\n";
+    std::cout<<httpRes.str("> ")<<std::endl;
     return httpRes;
 }
