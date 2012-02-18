@@ -17,18 +17,19 @@ std::string FileLister::getCurrentPath(){
 
 int FileLister::list(){
     directories = files = std::vector<std::string>();
-    ::DIR *dir = opendir(getCurrentPath().c_str());
-    std::cout<<"Listing Path: "<<getCurrentPath()<<std::endl;
+    std::string curPath(getCurrentPath());
+    ::DIR *dir = ::opendir(curPath.c_str());
+    std::cout<<"Listing Path: "<<curPath<<std::endl;
     if (dir != NULL) {
         ::dirent *ent;
         while ((ent = readdir (dir)) != NULL) {
             std::string fileName(ent->d_name);
             if (fileName == "." || fileName == "..")
                 continue;
-            if (ent->d_type == ::DT_REG)
+            if (::opendir(curPath + fileName))
+                directories.push_back(std::string(ent->d_name) + std::string(1,SEP));
+            else
                 files.push_back(ent->d_name);
-            else if (ent->d_type == ::DT_DIR)
-                directories.push_back(ent->d_name + std::string(1,SEP));
         }
         closedir (dir);
         std::sort(files.begin(), files.end());
@@ -44,8 +45,7 @@ int FileLister::list(){
 int FileLister::enterDir(const std::string& dirName){
     //dirName must end with SEP
     if (dirName[dirName.length()-1] != SEP){
-        std::cout<<"Doesn't end with SEP\n";
-        return 0;
+        dirName.append(1,SEP);
     }
     //must exist .. else return; invalidity holds for "." and ".." too
     if (std::find(files.begin(), files.end(), dirName)==files.end()){
