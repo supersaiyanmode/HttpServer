@@ -20,18 +20,24 @@ int FileLister::list(){
     std::string curPath(getCurrentPath());
     ::DIR *dir = ::opendir(curPath.c_str());
     std::cout<<"Listing Path: "<<curPath<<std::endl;
+    std::vector<std::string> fileList;
     if (dir != NULL) {
         ::dirent *ent;
         while ((ent = readdir (dir)) != NULL) {
             std::string fileName(ent->d_name);
             if (fileName == "." || fileName == "..")
                 continue;
-            if (::opendir(curPath + fileName))
-                directories.push_back(std::string(ent->d_name) + std::string(1,SEP));
-            else
-                files.push_back(ent->d_name);
+            fileList.push_back(ent->d_name);
         }
         closedir (dir);
+        for (std::vector<std::string>::iterator it=fileList.begin();
+                    it!=fileList.end(); it++){
+            ::DIR *folderCheck;
+            if ((folderCheck = ::opendir((curPath + *it).c_str())))
+                directories.push_back(std::string(ent->d_name) + std::string(1,SEP));
+            else
+                files.push_back(std::string(ent->d_name) + std::string(1,SEP));
+        }
         std::sort(files.begin(), files.end());
         std::sort(directories.begin(), directories.end());
         files.insert(files.begin(), directories.begin(), directories.end());
@@ -42,7 +48,7 @@ int FileLister::list(){
     }
 }
 
-int FileLister::enterDir(const std::string& dirName){
+int FileLister::enterDir(std::string dirName){
     //dirName must end with SEP
     if (dirName[dirName.length()-1] != SEP){
         dirName.append(1,SEP);

@@ -12,7 +12,7 @@ class FileLister{
     std::string getCurrentPath();
 public:
     FileLister(const std::string&);
-    int enterDir(const std::string&);
+    int enterDir(std::string);
     int exitDir();
     const std::vector<std::string>& get();
     int setPath(std::string);

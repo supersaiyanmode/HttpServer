@@ -46,7 +46,7 @@ HTTPResponse HTTPServer::serve(HTTPRequest httpReq){
     
     HTTPResponse httpRes;
     
-    if (httpReq.getUrl() == "/" && httpReq.getMethod() == GET){
+    if (httpReq.getUrl() == "/" && httpReq.getMethod() == HTTP_GET){
         std::string content;
         std::stringstream ss;
         
@@ -57,14 +57,14 @@ HTTPResponse HTTPServer::serve(HTTPRequest httpReq){
         httpRes.setStatusCode(200);
         httpRes.setHeader("Content-Type","text/html");
         httpRes.setContent(content);
-    }else if (httpReq.getUrl() == "/login"){// && httpReq.getMethod() == POST){
+    }else if (httpReq.getUrl() == "/login" && httpReq.getMethod() == HTTP_POST){
         std::string id = startNewSession();
         std::cout<<"Started new session: "<<id<<std::endl;
         httpRes.setStatusCode(200);
         httpRes.setHeader("Content-Type","text/html");
         httpRes.cookies["SESSIONID"]=id;
         httpRes.setContent("<meta http-equiv='Refresh' content='0; url=/files' />");
-    }else if (httpReq.getUrl() == "/files" && httpReq.getMethod() == GET){
+    }else if (httpReq.getUrl() == "/files" && httpReq.getMethod() == HTTP_GET){
         //check the session..
         std::string sessionId = httpReq.cookies["SESSIONID"].value();
         if (sessionMap.find(sessionId) == sessionMap.end()){ //redirect
@@ -84,7 +84,7 @@ HTTPResponse HTTPServer::serve(HTTPRequest httpReq){
         httpRes.setStatusCode(200);
         httpRes.setHeader("Content-Type","text/html");
         httpRes.setContent(content);
-    }else if (httpReq.getUrl() == "/command" && httpReq.getMethod() == POST){
+    }else if (httpReq.getUrl() == "/command" && httpReq.getMethod() == HTTP_POST){
         //check the session..
         std::string sessionId = httpReq.cookies["SESSIONID"].value();
         if (sessionMap.find(sessionId) == sessionMap.end()){ //error
@@ -147,7 +147,7 @@ HTTPResponse HTTPServer::serve(HTTPRequest httpReq){
             httpRes.setContent("Invalid command!");
         }
         
-    }else if (httpReq.getUrl() == "/jquery" && httpReq.getMethod() == GET){
+    }else if (httpReq.getUrl() == "/jquery" && httpReq.getMethod() == HTTP_GET){
         std::string content;
         std::stringstream ss;
         

@@ -155,13 +155,15 @@ HTTPRequest HTTPRequest::readFromSocket(int socket){
     ss>>methodStr>>urlStr>>versionStr;
     std::transform(methodStr.begin(), methodStr.end(), methodStr.begin(), ::toupper);
     if (methodStr=="GET")
-        ret.method = GET;
+        ret.method = HTTP_GET;
     else if (methodStr == "POST")
-        ret.method = POST;
-    else if (methodStr == "DELETE")
-        ret.method = DELETE;
+        ret.method = HTTP_POST;
+    else if (methodStr == "HEAD")
+        ret.method = HTTP_HEAD;
     else if (methodStr == "PUT")
-        ret.method = PUT;
+        ret.method = HTTP_PUT;
+    else if (methodStr == "DELETE")
+        ret.method = HTTP_DELETE;
     else
         throw std::string("Bad Request") + methodStr;
 
@@ -192,7 +194,7 @@ HTTPRequest HTTPRequest::readFromSocket(int socket){
         ret.cookies = CookieSet::fromHeaderString(ret.headers["cookie"]);
     }
 
-    if (ret.method == POST){
+    if (ret.method == HTTP_POST){
         std::stringstream ss(ret.headers["content-length"]);
         int length;
         ss>>length;
@@ -210,7 +212,10 @@ HTTPRequestMethod HTTPRequest::getMethod(){
     return method;
 }
 std::string HTTPRequest::getMethodStr(){ //TODO: Fix this quick and dirty stuff..
-    return (method==GET?"GET":method==POST?"POST":method==DELETE?"DELETE":"PUT");
+    return (method==HTTP_GET?"GET":
+            method==HTTP_POST?"POST":
+            method==HTTP_DELETE?"DELETE":
+            "PUT");
 }
 
 const std::map<std::string, std::string> HTTPRequest::getParams(){

@@ -7,7 +7,7 @@
 
 #include "CookieManager.h"
 
-enum HTTPRequestMethod{METHOD_NONE, GET, POST, DELETE, PUT};
+enum HTTPRequestMethod{METHOD_NONE, HTTP_GET, HTTP_POST, HTTP_HEAD, HTTP_PUT, HTTP_DELETE};
 
 class HTTPMessage{
 protected:
