@@ -34,9 +34,10 @@ int FileLister::list(){
                     it!=fileList.end(); it++){
             ::DIR *folderCheck;
             if ((folderCheck = ::opendir((curPath + *it).c_str())))
-                directories.push_back(std::string(ent->d_name) + std::string(1,SEP));
+                directories.push_back(*it + std::string(1,SEP));
             else
-                files.push_back(std::string(ent->d_name) + std::string(1,SEP));
+                files.push_back(*it);
+            closedir(folderCheck);
         }
         std::sort(files.begin(), files.end());
         std::sort(directories.begin(), directories.end());
