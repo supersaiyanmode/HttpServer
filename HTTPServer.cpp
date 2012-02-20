@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <ctime>
+#include <cstring>
 
 #include "HTTPServer.h"
 #include "FileLister.h"
@@ -39,6 +40,18 @@ std::string startNewSession(){
 }
 
 //############HTTPServer##########################
+extern "C" {
+    unsigned char* EMBED_DATA_files_html;
+    unsigned long EMBED_DATA_files_html_LENGTH();
+    unsigned long EMBED_DATA_files_html_INIT();
+    unsigned long EMBED_DATA_files_html_CLOSE();
+    
+    unsigned char* EMBED_DATA_login_html;
+    unsigned long EMBED_DATA_login_html_LENGTH();
+    unsigned long EMBED_DATA_login_html_INIT();
+    unsigned long EMBED_DATA_login_html_CLOSE();
+}
+
 HTTPServer::HTTPServer(){}
 
 HTTPResponse HTTPServer::serve(HTTPRequest httpReq){
@@ -50,10 +63,13 @@ HTTPResponse HTTPServer::serve(HTTPRequest httpReq){
         std::string content;
         std::stringstream ss;
         
-        std::ifstream in("login.html");
-        ss<<in.rdbuf();
-        content = ss.str();
+        if (!EMBED_DATA_login_html)
+            if (!EMBED_DATA_login_html_INIT())
+                throw "Too bad!";
         
+        content.resize(EMBED_DATA_login_html_LENGTH());
+        std::memcpy(&content[0],EMBED_DATA_login_html, EMBED_DATA_login_html_LENGTH());
+               
         httpRes.setStatusCode(200);
         httpRes.setHeader("Content-Type","text/html");
         httpRes.setContent(content);
@@ -72,14 +88,14 @@ HTTPResponse HTTPServer::serve(HTTPRequest httpReq){
             httpRes.redirect("/");
             return httpRes;
         }
-        std::cout<<"Session identified!"<<std::endl;
+        if (!EMBED_DATA_files_html)
+            if (!EMBED_DATA_files_html_INIT())
+                throw "Too bad!";
         
+        //quick and dirty..
         std::string content;
-        std::stringstream ss;
-        
-        std::ifstream in("files.html");
-        ss<<in.rdbuf();
-        content = ss.str();
+        content.resize(EMBED_DATA_files_html_LENGTH());
+        std::memcpy(&content[0],EMBED_DATA_files_html, EMBED_DATA_files_html_LENGTH());
         
         httpRes.setStatusCode(200);
         httpRes.setHeader("Content-Type","text/html");
@@ -145,7 +161,17 @@ HTTPResponse HTTPServer::serve(HTTPRequest httpReq){
         }else {
             httpRes.setStatusCode(404);
             httpRes.setContent("Invalid command!");
+        }  
+    }else if (httpReq.getUrl() == "/preview"){
+        //check the session..
+        std::string sessionId = httpReq.cookies["SESSIONID"].value();
+        if (sessionMap.find(sessionId) == sessionMap.end()){ //error
+            httpRes.setStatusCode(404); //we are sending a 404!
+            httpRes.setContent("Invalid session");
+            return httpRes;
         }
+        Session& session = sessionMap[sessionId];
+        
         
     }else if (httpReq.getUrl() == "/jquery" && httpReq.getMethod() == HTTP_GET){
         std::string content;

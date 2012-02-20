@@ -19,7 +19,6 @@ int FileLister::list(){
     directories = files = std::vector<std::string>();
     std::string curPath(getCurrentPath());
     ::DIR *dir = ::opendir(curPath.c_str());
-    std::cout<<"Listing Path: "<<curPath<<std::endl;
     std::vector<std::string> fileList;
     if (dir != NULL) {
         ::dirent *ent;
