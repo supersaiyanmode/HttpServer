@@ -55,7 +55,7 @@ extern "C" {
 HTTPServer::HTTPServer(){}
 
 HTTPResponse HTTPServer::serve(HTTPRequest httpReq){
-    std::cout<<httpReq.str("< ")<<std::endl;
+    std::cout<<httpReq.prettyPrint()<<std::endl;
     
     HTTPResponse httpRes;
     
@@ -162,7 +162,7 @@ HTTPResponse HTTPServer::serve(HTTPRequest httpReq){
             httpRes.setStatusCode(404);
             httpRes.setContent("Invalid command!");
         }  
-    }else if (httpReq.getUrl() == "/preview"){
+    }else if (httpReq.getUrl() == "/download" && httpReq.getMethod() == HTTP_GET){
         //check the session..
         std::string sessionId = httpReq.cookies["SESSIONID"].value();
         if (sessionMap.find(sessionId) == sessionMap.end()){ //error
@@ -171,8 +171,25 @@ HTTPResponse HTTPServer::serve(HTTPRequest httpReq){
             return httpRes;
         }
         Session& session = sessionMap[sessionId];
+        if (session["CURRENT_PATH"] == "")
+            session["CURRENT_PATH"] = "";
         
-        
+        FileLister fl(".");
+        fl.setPath(session["CURRENT_PATH"]);
+        std::map<std::string, std::string> getParams(httpReq.getParams());
+        if (getParams["fileName"] == ""){
+            httpRes.setStatusCode(403);
+            httpRes.setContent("Forbidden. Invalid request for download.");
+        }
+        std::string fileName = getParams["fileName"], content,mime;
+        if (!fl.getFileContent(fileName,content,mime)){
+            httpRes.setStatusCode(404);
+        }else{
+            httpRes.setStatusCode(200);
+            httpRes.setHeader("Content-Type",mime);
+            httpRes.setHeader("Content-Disposition", "attachment; filename="+fileName);
+        }
+        httpRes.setContent(content);
     }else if (httpReq.getUrl() == "/jquery" && httpReq.getMethod() == HTTP_GET){
         std::string content;
         std::stringstream ss;
@@ -198,6 +215,6 @@ HTTPResponse HTTPServer::serve(HTTPRequest httpReq){
         httpRes.setStatusCode(404);
         httpRes.setContent("");
     }
-    std::cout<<httpRes.str("> ")<<std::endl;
+    std::cout<<httpRes.prettyPrint()<<std::endl;
     return httpRes;
 }

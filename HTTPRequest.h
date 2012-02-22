@@ -18,7 +18,8 @@ public:
     CookieSet cookies;
     const std::map<std::string, std::string>& getHeaders();
     std::string getContent();
-    virtual std::string str(std::string="")=0; //pretty print purposes
+    virtual std::string prettyPrint()=0; //pretty print purposes
+    virtual std::string str()=0;
 };
 
 class HTTPRequest: public HTTPMessage{
@@ -29,7 +30,8 @@ public:
     HTTPRequestMethod getMethod();
     std::string getMethodStr();
     std::string getUrl();
-    std::string str(std::string=""); //pretty print purposes
+    std::string str();
+    std::string prettyPrint();
     const std::map<std::string, std::string> getParams();
     const std::map<std::string, std::string> postParams();
     
@@ -43,7 +45,8 @@ class HTTPResponse: public HTTPMessage{
     std::string statusMsg;
 public:
     HTTPResponse();
-    std::string str(std::string=""); //pretty print purposes
+    std::string str();
+    std::string prettyPrint();
     void redirect(const std::string &);
     void setStatusCode(int);
     void setHeader(const std::string&, const std::string&);

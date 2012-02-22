@@ -17,6 +17,7 @@ public:
     const std::vector<std::string>& get();
     int setPath(std::string);
     std::string getPath();
+    bool getFileContent(const std::string&,std::string&,std::string&);
 };
 
 #endif

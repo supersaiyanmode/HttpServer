@@ -10,7 +10,7 @@ function populateFiles(data){
         if (/\/$/.test(data[x]))
             str += "<li><a href='#' onclick='openDir(\""+data[x]+"\")'>" + data[x] + "</a></li>";
         else if (data[x])
-            str += "<li><a href='#' onclick='download(\""+data[x]+"\")'>" + data[x] + "</a></li>";
+            str += "<li><a href='#' onclick='download(\""+data[x]+"\")'>" + data[x] + "</a> | <a target='_blank' href='/download?fileName=" + encodeURIComponent(data[x]) + "'>Download</a></li>";
             
     }
     $("#divFileList").html(str);

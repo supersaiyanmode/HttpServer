@@ -2,10 +2,31 @@
 #include <dirent.h>
 #include <algorithm>
 #include <iostream>
+#include <sstream>
+#include <fstream>
+#include <map>
 
 const char SEP = '/';
 
+std::map<std::string, std::string> MIME_MAP;
+
+
+
 FileLister::FileLister(const std::string& path):basePath(path){
+    if (!MIME_MAP.size()){
+        //populate the mime table
+        std::ifstream in("mimetypes");
+        std::string line;
+        while (std::getline(in, line)){
+            std::stringstream ss(line);
+            std::string value,key;
+            ss>>value;
+            while (ss>>key)
+                MIME_MAP[key] = value;
+        }
+        in.close();
+        MIME_MAP[""] = "application/octet-stream";
+    }
     if (basePath[basePath.length()-1] != SEP)
         basePath.append(1,SEP);
     list();
@@ -93,6 +114,7 @@ int FileLister::setPath(std::string path){
     }while (1);
     return 1;
 }
+
 std::string FileLister::getPath(){
     std::string ret;
     std::stack<std::string> tempDirStack(dirStack);
@@ -105,6 +127,34 @@ std::string FileLister::getPath(){
 
 const std::vector<std::string>& FileLister::get(){
     return files;
+}
+
+bool FileLister::getFileContent(const std::string& fileName,std::string& retStr,
+                std::string& mime){
+    if (fileName[fileName.length()-1] == SEP){
+        retStr = "filename ends with " + std::string(1,SEP);
+        return false;
+    }
+    if (std::find(files.begin(), files.end(), fileName)==files.end()){
+        retStr = "File not in the list of files in cur dir..";
+        return false;
+    }
+    std::ifstream in(fileName.c_str(), std::ios::in|std::ios::binary);
+    if (!in.good()){
+        retStr = "Grr.. file doesn't exist";
+        return false;
+    }
+    std::stringstream ss;
+    ss<<in.rdbuf();
+    in.close();
+    retStr = ss.str();
+    std::string extension = "";
+    size_t pos;
+    if ((pos =fileName.find_last_of(".")) != std::string::npos)
+        extension = fileName.substr(pos);
+
+    mime = MIME_MAP[extension];
+    return true;
 }
 
 #if 0

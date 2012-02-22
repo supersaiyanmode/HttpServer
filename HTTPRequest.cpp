@@ -134,7 +134,6 @@ std::string HTTPMessage::getContent(){
     return body;
 }
 
-
 //###############HTTPRequest############################
 
 HTTPRequest HTTPRequest::readFromSocket(int socket){
@@ -225,13 +224,34 @@ const std::map<std::string, std::string> HTTPRequest::postParams(){
     return postParam;
 }
 
+std::string HTTPRequest::prettyPrint(){
+    std::string response("< " + str());
+    bool contentLarge = headers["Content-Length"].length()>3; //more than 3 digits (>999)
+    size_t curPos=0;
+    while ((curPos=response.find(CRLF,curPos+1))!= std::string::npos){
+        curPos += CRLF.size();
+        response.insert(curPos,"< ");
+        curPos+=2;
+        if (response.substr(curPos,CRLF.size()) == CRLF){
+            curPos += 2;
+            response.insert(curPos,"< ");
+            response += 2;
+            if (contentLarge){
+                response.erase(response.begin()+curPos);
+                response += "< [Content-Length: " + headers["Content-Length"] + "]";
+            }
+            return response;
+        }
+    }
+    return response;
+}
 
-std::string HTTPRequest::str(std::string prepend){
-    std::string ret = prepend + getMethodStr() + " " + getUrl() + " " + version + CRLF;
+std::string HTTPRequest::str(){
+    std::string ret = getMethodStr() + " " + getUrl() + " " + version + CRLF;
     for (std::map<std::string,std::string>::iterator it=headers.begin(); it!=headers.end(); it++)
-        ret += prepend + it->first + ": " + it->second + CRLF;
+        ret += it->first + ": " + it->second + CRLF;
     ret += CRLF;
-    ret += prepend + prepend + body;
+    ret += body;
     return ret;
 }
 
@@ -261,8 +281,30 @@ void HTTPResponse::setContent(const std::string& s){
     headers["Content-Length"] = ss.str();
 }
 
-std::string HTTPResponse::str(std::string prepend){
-    std::string ret = prepend + version + " " + codeStr + " " + statusMsg + CRLF;
+std::string HTTPResponse::prettyPrint(){
+    std::string response("> " + str());
+    bool contentLarge = headers["Content-Length"].length()>3; //more than 3 digits (>999)
+    size_t curPos;
+    while ((curPos=response.find(CRLF,curPos))!= std::string::npos){
+        curPos += CRLF.size();
+        response.insert(curPos,"> ");
+        curPos+=2;
+        if (response.substr(curPos,CRLF.size()) == CRLF){
+            curPos += 2;
+            response.insert(curPos,"> ");
+            response += 2;
+            if (contentLarge){
+                response.erase(response.begin()+curPos);
+                response += "> [Content-Length: " + headers["Content-Length"] + "]";
+            }
+            return response;
+        }
+    }
+    return response;
+}
+
+std::string HTTPResponse::str(){
+    std::string ret = version + " " + codeStr + " " + statusMsg + CRLF;
     
     //set header for cookies
     std::string cookieStr = cookies.str();
@@ -270,9 +312,9 @@ std::string HTTPResponse::str(std::string prepend){
         headers["Set-Cookie"] = cookieStr;
     
     for (std::map<std::string,std::string>::iterator it=headers.begin(); it!=headers.end(); it++)
-        ret += prepend + it->first + ": " + it->second + CRLF;
+        ret += it->first + ": " + it->second + CRLF;
     ret += CRLF;
-    ret += prepend + prepend+body;
+    ret += body;
     return ret;
 }
 
